@@ -1,13 +1,13 @@
 import os
 import json
 import logging
+import re
+from datetime import datetime, timedelta
 from telegram import (
     Update,
-    User,
     ChatPermissions,
     InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    MessageEntity
+    InlineKeyboardMarkup
 )
 from telegram.ext import (
     Application,
@@ -19,180 +19,191 @@ from telegram.ext import (
     ConversationHandler
 )
 
-# ----------------- הגדרות -----------------
+# ------ הגדרות בסיסיות ------
 BOT_TOKEN = os.environ.get('BOT_TOKEN')
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# ----------------- מאגרי נתונים -----------------
+# ------ מאגרי נתונים ------
+try:
+    with open('data.json', 'r') as f:
+        GROUPS = json.load(f)
+except:
+    GROUPS = {}
+
+# ------ שפות ------
 LOCALES = {}
-GROUPS = {}
+for lang in ['he', 'en']:
+    with open(f'locales/{lang}.json', 'r', encoding='utf-8') as f:
+        LOCALES[lang] = json.load(f)
 
-# ----------------- מצבים -----------------
-SETTINGS, SET_LANG, SET_MAX_WARNS, SET_LINK_ACTION, SET_WARN_ACTION = range(5)
-
-# ----------------- טעינת שפות -----------------
-for lang_file in os.listdir('locales'):
-    if lang_file.endswith('.json'):
-        lang = lang_file.split('.')[0]
-        with open(f'locales/{lang_file}', 'r', encoding='utf-8') as f:
-            LOCALES[lang] = json.load(f)
+def save_data():
+    with open('data.json', 'w') as f:
+        json.dump(GROUPS, f)
 
 def get_msg(chat_id: int, key: str, **kwargs) -> str:
-    lang = GROUPS.get(chat_id, {}).get('lang', 'he')
+    lang = GROUPS.get(str(chat_id), {}).get('lang', 'he')
     return LOCALES[lang][key].format(**kwargs)
 
-# ----------------- פונקציות עזר -----------------
-async def is_admin(update: Update, context: CallbackContext) -> bool:
-    user = update.effective_user
-    if user.username == 'GroupAnonymousBot':
-        return await verify_anonymous_admin(update, context)
+# ------ פונקציות עזר ------
+async def is_admin(update: Update, context: CallbackContext, user_id: int = None) -> bool:
+    user = user_id or update.effective_user.id
+    chat = update.effective_chat
     try:
-        member = await update.effective_chat.get_member(user.id)
+        member = await chat.get_member(user)
         return member.status in ['administrator', 'creator']
     except:
         return False
 
-async def verify_anonymous_admin(update: Update, context: CallbackContext) -> bool:
-    verification_id = str(uUID.uuid4())
-    keyboard = [[InlineKeyboardButton(
-        text=get_msg(update.effective_chat.id, 'verify_button'),
-        callback_data=f"auth_{verification_id}"
-    )]]
-    
-    context.user_data['pending_auth'] = {
-        'command': update.message.text,
-        'chat_id': update.effective_chat.id
-    }
-    
-    await update.message.reply_text(
-        get_msg(update.effective_chat.id, 'verification_required'),
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return False
+async def get_target_user(update: Update) -> dict:
+    if update.message.reply_to_message:
+        return {
+            'id': update.message.reply_to_message.from_user.id,
+            'mention': update.message.reply_to_message.from_user.mention_html()
+        }
+    if context.args:
+        try:
+            user = await context.bot.get_chat_member(update.effective_chat.id, context.args[0])
+            return {
+                'id': user.user.id,
+                'mention': user.user.mention_html()
+            }
+        except:
+            pass
+    return None
 
-# ----------------- ניהול משתמשים -----------------
-async def kick_user(update: Update, context: CallbackContext):
+# ------ ניהול משתמשים ------
+async def ban_user(update: Update, context: CallbackContext):
     if not await is_admin(update, context):
         return
     
-    target = update.message.reply_to_message.from_user if update.message.reply_to_message else None
+    target = await get_target_user(update)
     if not target:
         await update.message.reply_text(get_msg(update.effective_chat.id, 'user_required'))
         return
     
-    await context.bot.ban_chat_member(update.effective_chat.id, target.id)
-    await update.message.reply_text(get_msg(update.effective_chat.id, 'kicked', user=target.mention_html()))
-
-async def ban_user(update: Update, context: CallbackContext):
-    # דומה ל-kick עם הרשאות תמידיות
+    await context.bot.ban_chat_member(update.effective_chat.id, target['id'])
+    await update.message.reply_text(get_msg(update.effective_chat.id, 'banned', user=target['mention']))
 
 async def unban_user(update: Update, context: CallbackContext):
     target = await get_target_user(update)
-    await context.bot.unban_chat_member(update.effective_chat.id, target.id)
-    await update.message.reply_text(get_msg(update.effective_chat.id, 'unbanned', user=target.mention_html()))
+    if not target:
+        return
+    
+    await context.bot.unban_chat_member(update.effective_chat.id, target['id'])
+    await update.message.reply_text(get_msg(update.effective_chat.id, 'unbanned', user=target['mention']))
 
-async def mute_user(update: Update, context: CallbackContext):
-    time = int(context.args[0]) if context.args else 1440  # ברירת מחדל 24 שעות
-    permissions = ChatPermissions(
-        can_send_messages=False,
-        can_send_media_messages=False,
-        can_send_other_messages=False
-    )
-    await context.bot.restrict_chat_member(update.effective_chat.id, target.id, permissions)
-    await update.message.reply_text(get_msg(update.effective_chat.id, 'muted', user=target.mention_html(), time=time))
+# ------ מערכת אזהרות ------
+async def warn_user(update: Update, context: CallbackContext):
+    target = await get_target_user(update)
+    if not target:
+        return
+    
+    reason = ' '.join(context.args[1:]) if context.args else 'No reason provided'
+    chat_id = str(update.effective_chat.id)
+    
+    GROUPS.setdefault(chat_id, {}).setdefault('warns', {}).setdefault(target['id'], []).append({
+        'by': update.effective_user.id,
+        'reason': reason,
+        'time': datetime.now().isoformat()
+    })
+    
+    max_warns = GROUPS[chat_id].get('max_warns', 3)
+    if len(GROUPS[chat_id]['warns'][target['id']]) >= max_warns:
+        action = GROUPS[chat_id].get('warn_action', 'kick')
+        if action == 'kick':
+            await context.bot.ban_chat_member(chat_id, target['id'])
+        elif action == 'ban':
+            await context.bot.ban_chat_member(chat_id, target['id'], until_date=datetime.now() + timedelta(days=365))
+        
+        await update.message.reply_text(get_msg(chat_id, 'warn_limit', user=target['mention']))
+    
+    save_data()
 
-async def unmute_user(update: Update, context: CallbackContext):
-    permissions = ChatPermissions(
-        can_send_messages=True,
-        can_send_media_messages=True,
-        can_send_other_messages=True
-    )
-    await context.bot.restrict_chat_member(update.effective_chat.id, target.id, permissions)
-    await update.message.reply_text(get_msg(update.effective_chat.id, 'unmuted', user=target.mention_html()))
+async def unwarn_user(update: Update, context: CallbackContext):
+    target = await get_target_user(update)
+    if not target or not GROUPS.get(str(update.effective_chat.id), {}).get('warns', {}).get(target['id']):
+        await update.message.reply_text(get_msg(update.effective_chat.id, 'no_warns'))
+        return
+    
+    GROUPS[str(update.effective_chat.id)]['warns'][target['id']].pop()
+    await update.message.reply_text(get_msg(update.effective_chat.id, 'unwarned', user=target['mention']))
+    save_data()
 
-# ----------------- מערכת פילטרים -----------------
+# ------ פילטרים ------
 async def add_filter(update: Update, context: CallbackContext):
-    word = ' '.join(context.args).lower()
-    GROUPS.setdefault(update.effective_chat.id, {}).setdefault('filters', []).append(word)
-    await update.message.reply_text(f"✅ המילה '{word}' נוספה לפילטר")
-
-async def remove_filter(update: Update, context: CallbackContext):
-    word = ' '.join(context.args).lower()
-    if word in GROUPS.get(update.effective_chat.id, {}).get('filters', []):
-        GROUPS[update.effective_chat.id]['filters'].remove(word)
-        await update.message.reply_text(f"✅ המילה '{word}' הוסרה מהפילטר")
-
-async def check_filters(update: Update, context: CallbackContext):
-    text = update.message.text.lower()
-    filters = GROUPS.get(update.effective_chat.id, {}).get('filters', [])
-    for word in filters:
-        if word in text:
-            await update.message.delete()
-            await update.message.reply_text(
-                get_msg(update.effective_chat.id, 'filter_violation', user=update.effective_user.mention_html())
-            )
-
-# ----------------- הודעות ברוכים הבאים -----------------
-async def welcome_new_member(update: Update, context: CallbackContext):
-    for member in update.message.new_chat_members:
-        welcome_text = GROUPS.get(update.effective_chat.id, {}).get('welcome_msg', 'ברוך הבא!')
-        await update.message.reply_text(welcome_text.format(user=member.mention_html()))
-
-async def set_welcome(update: Update, context: CallbackContext):
-    welcome_msg = ' '.join(context.args)
-    GROUPS.setdefault(update.effective_chat.id, {})['welcome_msg'] = welcome_msg
-    await update.message.reply_text("✅ הודעת הברכה עודכנה!")
-
-# ----------------- מערכת הגדרות -----------------
-async def group_settings(update: Update, context: CallbackContext):
-    chat_id = update.effective_chat.id
-    settings = GROUPS.get(chat_id, {})
+    if not update.message.reply_to_message:
+        return
     
-    text = get_msg(chat_id, 'settings').format(
-        max_warns=settings.get('max_warns', 3),
-        link_action=settings.get('link_action', 'delete'),
-        warn_action=settings.get('warn_action', 'kick'),
-        filters_count=len(settings.get('filters', []))
-    )
+    trigger = ' '.join(context.args)
+    response = update.message.reply_to_message.text or update.message.reply_to_message.caption
     
+    GROUPS.setdefault(str(update.effective_chat.id), {}).setdefault('filters', {})[trigger] = response
+    await update.message.reply_text(get_msg(update.effective_chat.id, 'filter_added'))
+    save_data()
+
+async def handle_filters(update: Update, context: CallbackContext):
+    text = update.message.text or update.message.caption
+    if not text:
+        return
+    
+    chat_id = str(update.effective_chat.id)
+    for trigger, response in GROUPS.get(chat_id, {}).get('filters', {}).items():
+        if trigger.lower() in text.lower():
+            await update.message.reply_text(response)
+            break
+
+# ------ הגדרות ------
+async def settings_menu(update: Update, context: CallbackContext):
     keyboard = [
-        [InlineKeyboardButton("✏️ מקסימום אזהרות", callback_data='set_max_warns'),
-         InlineKeyboardButton("🔗 פעולת קישורים", callback_data='set_link_action')],
-        [InlineKeyboardButton("⚠️ פעולת אזהרות", callback_data='set_warn_action'),
-         InlineKeyboardButton("🗑️ ניהול פילטרים", callback_data='manage_filters')]
+        [InlineKeyboardButton("🌐 שפה", callback_data="lang"),
+         InlineKeyboardButton("⚠️ אזהרות", callback_data="warns")],
+        [InlineKeyboardButton("🔗 קישורים", callback_data="links"),
+         InlineKeyboardButton("👋 ברוכים הבאים", callback_data="welcome")]
     ]
-    await update.message.reply_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-    return SETTINGS
+    await update.message.reply_text("⚙️ הגדרות קבוצה:", reply_markup=InlineKeyboardMarkup(keyboard))
+    return 'settings'
 
-# ----------------- הרצת הבוט -----------------
+async def settings_callback(update: Update, context: CallbackContext):
+    query = update.callback_query
+    # הוסף לוגיקה להגדרות כאן
+    await query.answer("הגדרה עודכנה!")
+    return ConversationHandler.END
+
+# ------ הרצת הבוט ------
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
     
-    # רישום כל הפקודות
+    # רישום פקודות
     commands = [
         ('start', lambda u,c: u.message.reply_text(get_msg(u.effective_chat.id, 'start'))),
         ('help', lambda u,c: u.message.reply_text(get_msg(u.effective_chat.id, 'help'))),
-        ('kick', kick_user),
         ('ban', ban_user),
         ('unban', unban_user),
+        ('warn', warn_user),
+        ('unwarn', unwarn_user),
+        ('kick', kick_user),
         ('mute', mute_user),
         ('unmute', unmute_user),
-        ('warn', warn_user),
-        ('addfilter', add_filter),
-        ('delfilter', remove_filter),
+        ('filter', add_filter),
+        ('stop', remove_filter),
+        ('filters', list_filters),
+        ('welcome', welcome_toggle),
         ('setwelcome', set_welcome),
-        ('settings', group_settings),
-        ('setlang', set_language)
+        ('setlang', set_language),
+        ('settings', settings_menu)
     ]
     
     for cmd, handler in commands:
         app.add_handler(CommandHandler(cmd, handler))
     
-    # הוספת כל האנדלרים הנוספים
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, check_filters))
-    app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
-    app.add_handler(CallbackQueryHandler(verify_callback, pattern=r"^auth_"))
+    # הוספת האנדלרים הנוספים
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_filters))
+    app.add_handler(ConversationHandler(
+        entry_points=[CommandHandler("settings", settings_menu)],
+        states={'settings': [CallbackQueryHandler(settings_callback)]},
+        fallbacks=[]
+    ))
     
     app.run_polling()
 

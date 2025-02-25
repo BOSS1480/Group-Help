@@ -3,8 +3,15 @@ from database import get_db
 from utils import check_admin
 
 def load_messages():
-    with open("messages.json", "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open("messages.json", "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # הודעות ברירת מחדל אם הקובץ חסר
+        return {
+            "en": {"start": "Bot started!", "not_admin": "You are not an admin!", "no_target": "No target specified!"},
+            "he": {"start": "הבוט התחיל!", "not_admin": "אתה לא מנהל!", "no_target": "לא צוין יעד!"}
+        }
 
 MESSAGES = load_messages()
 

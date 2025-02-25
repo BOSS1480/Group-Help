@@ -47,11 +47,6 @@ def main():
     # טיפול בהודעות עבור הגדרות
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_settings_input))
 
-    # הרצה ב-Koyeb
-    port = int(os.environ.get("PORT", 8443))
-    updater.start_webhook(listen="0.0.0.0", port=port, url_path=TOKEN)
-    updater.bot.setWebhook(f"technological-dorise-get-any-message-67ecca1e.koyeb.app/{TOKEN}")
-    updater.idle()
-
+    updater.start_polling()
 if __name__ == "__main__":
     main()

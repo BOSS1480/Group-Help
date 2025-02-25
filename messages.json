@@ -30,15 +30,7 @@
     "default_welcome": "Hi {user} 👋\nWelcome to {group} 🤟",
     "setlang_usage": "Use /setlang he or /setlang en.",
     "language_set": "Language set to {lang}!",
-    "settings_menu": "⚙️ Group Settings:",
-    "delete_service_prompt": "Delete service messages?",
-    "delete_service_set": "Service message deletion set to {status}!",
-    "link_action_prompt": "Action for links:",
-    "link_action_set": "Link action set to {action}!",
-    "max_warns_prompt": "Set maximum warnings:",
-    "max_warns_set": "Max warnings set to {count}!",
-    "warn_action_prompt": "Action after max warnings:",
-    "warn_action_set": "Action after warnings set to {action}!"
+    "settings_menu": "⚙️ Group Settings:"
   },
   "he": {
     "start": "ברוכים הבאים! הבוט הזה עוזר לנהל את הקבוצה עם פקודות כמו /ban, /kick, /warn, /mute ועוד. השתמש ב-/help לפרטים.",
@@ -71,14 +63,6 @@
     "default_welcome": "היי {user} 👋\nברוכים הבאים ל-{group} 🤟",
     "setlang_usage": "השתמש ב-/setlang he או /setlang en.",
     "language_set": "השפה נקבעה ל-{lang}!",
-    "settings_menu": "⚙️ הגדרות הקבוצה:",
-    "delete_service_prompt": "למחוק הודעות שירות?",
-    "delete_service_set": "מחיקת הודעות שירות נקבעה ל-{status}!",
-    "link_action_prompt": "פעולה לקישורים:",
-    "link_action_set": "פעולה לקישורים נקבעה ל-{action}!",
-    "max_warns_prompt": "קבע מספר אזהרות מקסימלי:",
-    "max_warns_set": "מספר אזהרות מקסימלי נקבע ל-{count}!",
-    "warn_action_prompt": "פעולה לאחר אזהרות מרביות:",
-    "warn_action_set": "פעולה לאחר אזהרות נקבעה ל-{action}!"
+    "settings_menu": "⚙️ הגדרות הקבוצה:"
   }
 }

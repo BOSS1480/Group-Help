@@ -48,7 +48,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_settings_input))
 
     # הרצה ב-Koyeb
-    port = int(os.environ.get("PORT", 8000))
+    port = int(os.environ.get("PORT", 8443))
     updater.start_webhook(listen="0.0.0.0", port=port, url_path=TOKEN)
     updater.bot.setWebhook(f"https://group-help.koyeb.app/{TOKEN}")
     updater.idle()

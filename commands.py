@@ -2,28 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from database import get_db, log_action, get_chat_settings
 from language import get_message
-
-def check_admin(update, context):
-    chat_id = update.effective_chat.id
-    user_id = update.effective_user.id
-    admins = context.bot.get_chat_administrators(chat_id)
-    return any(admin.user.id == user_id for admin in admins)
-
-def get_target_user(update, context):
-    message = update.message
-    if message.reply_to_message:
-        return message.reply_to_message.from_user
-    elif len(context.args) > 0:
-        target = context.args[0]
-        try:
-            return context.bot.get_chat_member(update.effective_chat.id, int(target)).user
-        except ValueError:
-            return context.bot.get_chat_member(update.effective_chat.id, target).user
-    return None
-
-def is_anonymous_admin(update, context):
-    member = context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
-    return member.status == "administrator" and member.user.is_anonymous
+from utils import check_admin, get_target_user, is_anonymous_admin
 
 def start(update, context):
     chat_id = update.effective_chat.id
@@ -209,48 +188,3 @@ def warns(update, context):
         update.message.reply_text(get_message(chat_id, "warn_count").format(user=target.full_name, count=result[0], reason=result[1]))
     else:
         update.message.reply_text(get_message(chat_id, "no_warnings").format(user=target.full_name))
-
-def button_handler(update, context):
-    query = update.callback_query
-    data = query.data.split("_")
-    
-    if data[0] == "unwarn":
-        user_id = int(data[1])
-        chat_id = int(data[2])
-        
-        member = context.bot.get_chat_member(chat_id, query.from_user.id)
-        if member.status != "administrator":
-            query.answer("אתה לא מנהל!")
-            return
-        
-        conn, c = get_db()
-        c.execute("SELECT count FROM warnings WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
-        result = c.fetchone()
-        if not result or result[0] == 0:
-            query.answer("אין אזהרות לבטל!")
-            return
-        
-        c.execute("UPDATE warnings SET count = count - 1 WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
-        conn.commit()
-        c.execute("SELECT count FROM warnings WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
-        warn_count = c.fetchone()[0]
-        
-        query.edit_message_text(f"אזהרה בוטלה עבור המשתמש. נותרו לו {warn_count} אזהרות.")
-        log_action(chat_id, f"Warning removed from user {user_id} via button by {query.from_user.full_name}")
-    
-    elif data[0] == "verify" and data[1] == "ban":
-        chat_id = int(data[2])
-        message_id = int(data[3])
-        
-        user_id = query.from_user.id
-        member = context.bot.get_chat_member(chat_id, user_id)
-        
-        if member.status != "administrator" or not member.can_restrict_members:
-            query.answer("אין לך מספיק הרשאות!")
-            return
-        
-        original_message = context.bot.get_message(chat_id, message_id)
-        target = original_message.reply_to_message.from_user
-        context.bot.ban_chat_member(chat_id, target.id)
-        query.edit_message_text(f"{target.full_name} נחסם!")
-        log_action(chat_id, f"{target.full_name} banned by {query.from_user.full_name} via verification")

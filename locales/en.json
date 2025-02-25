@@ -1,0 +1,19 @@
+{
+    "start": "🤖 Hello Admin! I'm your group management bot. Use /help for commands.",
+    "help": "📜 Commands:\n/kick [reply/user] - Kick user\n/ban [reply/user] - Ban user\n/unban [user] - Unban\n/mute [minutes] - Mute\n/unmute - Unmute\n/warn - Warn\n/unwarn - Remove warn\n/setlang [he/en] - Change language\n/setlog [channel] - Set logs\n/settings - Group settings",
+    "not_admin": "⛔ Admin only!",
+    "user_required": "🔍 Reply to a message or mention user!",
+    "kicked": "👢 Kicked {user}!",
+    "banned": "🔨 Banned {user}!",
+    "unbanned": "🔓 Unbanned {user}!",
+    "muted": "🔇 Muted {user} for {time}m!",
+    "unmuted": "🔊 Unmuted {user}!",
+    "warned": "⚠️ Warned {user} ({count}/{max})!",
+    "warn_limit": "🚨 Kicked {user} for too many warns!",
+    "log_set": "📂 Log channel: {channel}",
+    "verification_required": "🛡️ Verify admin:",
+    "verification_success": "✅ Verified!",
+    "settings": "⚙️ Settings:\nLanguage: {lang}\nMax warns: {max_warns}\nBlock links: {block_links}",
+    "link_deleted": "❌ Link removed!",
+    "forward_deleted": "❌ Forward removed!"
+}

@@ -7,7 +7,7 @@ from settings import settings_menu, handle_settings_input
 from database import init_db
 
 # החלף בטוקן האמיתי של הבוט שלך
-TOKEN = "7523206004:AAEA0sANMSyGBYoGxAG1ixHO3wqW-Y7V4iE"
+TOKEN = "YOUR_BOT_TOKEN_HERE"
 
 def main():
     # אתחול מסד הנתונים

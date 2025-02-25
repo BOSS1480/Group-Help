@@ -79,9 +79,13 @@ def button_handler(update, context):
         conn.commit()
         update_settings_message(query, context, chat_id)
     
-    elif data in ["unwarn", "verify_ban"]:  # טיפול בכפתורי אזהרה ואימות
-        from commands import button_handler as commands_button_handler
-        commands_button_handler(update, context)
+    elif data.startswith("unwarn_"):
+        from commands import unwarn_by_button
+        unwarn_by_button(update, context)
+    
+    elif data.startswith("verify_"):
+        from commands import verify_admin
+        verify_admin(update, context)
 
 def update_settings_message(query, context, chat_id):
     settings = get_chat_settings(chat_id)

@@ -3,7 +3,7 @@ from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, Callb
 from commands import *
 from filters import *
 from language import set_language, get_message
-from settings import settings_menu, handle_settings_input
+from settings import settings_menu, handle_settings_input, button_handler
 from database import init_db
 
 # החלף בטוקן האמיתי של הבוט שלך
@@ -40,9 +40,11 @@ def main():
     dp.add_handler(CommandHandler("setwelcome", set_welcome_message))
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_filters_and_welcome))
 
-    # הגדרות
+    # הגדרות וכפתורים
     dp.add_handler(CommandHandler("settings", settings_menu))
     dp.add_handler(CallbackQueryHandler(button_handler))
+
+    # טיפול בהודעות עבור הגדרות
     dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_settings_input))
 
     # הרצה ב-Koyeb

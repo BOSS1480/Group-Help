@@ -1,7 +1,8 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from database import get_db, get_chat_settings
 from language import get_message
-from commands import check_admin, warn, mute
+from utils import check_admin
+from commands import warn, mute
 
 def settings_menu(update, context):
     chat_id = update.effective_chat.id
@@ -9,11 +10,24 @@ def settings_menu(update, context):
         update.message.reply_text(get_message(chat_id, "not_admin"))
         return
     
+    settings = get_chat_settings(chat_id)
+    lang = settings.get("language", "en")
+    service_status = "✅" if settings.get("delete_service", "False") == "True" else "❌"
+    link_action = settings.get("link_action", "off")
+    max_warns = settings.get("max_warns", "3")
+    warn_action = settings.get("warn_action", "kick")
+    
     keyboard = [
-        [InlineKeyboardButton("מחיקת הודעות שירות", callback_data="delete_service")],
-        [InlineKeyboardButton("ניהול קישורים", callback_data="link_action")],
-        [InlineKeyboardButton("מספר אזהרות מקסימלי", callback_data="max_warns")],
-        [InlineKeyboardButton("פעולה לאחר אזהרות", callback_data="warn_action")]
+        [InlineKeyboardButton("שפה", callback_data="lang_label"), 
+         InlineKeyboardButton(f"{lang}", callback_data="toggle_lang")],
+        [InlineKeyboardButton("הודעות שירות", callback_data="service_label"), 
+         InlineKeyboardButton(service_status, callback_data="toggle_service")],
+        [InlineKeyboardButton("ניהול קישורים", callback_data="link_label"), 
+         InlineKeyboardButton(link_action, callback_data="cycle_link")],
+        [InlineKeyboardButton("מספר אזהרות", callback_data="warns_label"), 
+         InlineKeyboardButton(max_warns, callback_data="cycle_warns")],
+        [InlineKeyboardButton("פעולה לאחר אזהרות", callback_data="action_label"), 
+         InlineKeyboardButton(warn_action, callback_data="cycle_action")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(get_message(chat_id, "settings_menu"), reply_markup=reply_markup)
@@ -22,64 +36,75 @@ def button_handler(update, context):
     query = update.callback_query
     chat_id = query.message.chat_id
     data = query.data
+    settings = get_chat_settings(chat_id)
     
-    if data == "delete_service":
-        keyboard = [
-            [InlineKeyboardButton("כן", callback_data="service_yes"), InlineKeyboardButton("לא", callback_data="service_no")]
-        ]
-        query.edit_message_text(get_message(chat_id, "delete_service_prompt"), reply_markup=InlineKeyboardMarkup(keyboard))
-    
-    elif data.startswith("service_"):
-        value = "True" if data == "service_yes" else "False"
+    if data == "toggle_lang":
+        new_lang = "he" if settings.get("language", "en") == "en" else "en"
         conn, c = get_db()
-        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'delete_service', ?)", (chat_id, value))
+        c.execute("INSERT OR REPLACE INTO chats (chat_id, language) VALUES (?, ?)", (chat_id, new_lang))
         conn.commit()
-        query.edit_message_text(get_message(chat_id, "delete_service_set").format(status="כן" if value == "True" else "לא"))
+        update_settings_message(query, context, chat_id)
     
-    elif data == "link_action":
-        keyboard = [
-            [InlineKeyboardButton("מחק", callback_data="link_delete"),
-             InlineKeyboardButton("אזהרה", callback_data="link_warn"),
-             InlineKeyboardButton("השתק", callback_data="link_mute")]
-        ]
-        query.edit_message_text(get_message(chat_id, "link_action_prompt"), reply_markup=InlineKeyboardMarkup(keyboard))
-    
-    elif data.startswith("link_"):
-        action = data.split("_")[1]
+    elif data == "toggle_service":
+        new_status = "False" if settings.get("delete_service", "False") == "True" else "True"
         conn, c = get_db()
-        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'link_action', ?)", (chat_id, action))
+        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'delete_service', ?)", (chat_id, new_status))
         conn.commit()
-        query.edit_message_text(get_message(chat_id, "link_action_set").format(action=action))
+        update_settings_message(query, context, chat_id)
     
-    elif data == "max_warns":
-        keyboard = [
-            [InlineKeyboardButton("2", callback_data="warns_2"),
-             InlineKeyboardButton("3", callback_data="warns_3"),
-             InlineKeyboardButton("4", callback_data="warns_4")]
-        ]
-        query.edit_message_text(get_message(chat_id, "max_warns_prompt"), reply_markup=InlineKeyboardMarkup(keyboard))
-    
-    elif data.startswith("warns_"):
-        count = data.split("_")[1]
+    elif data == "cycle_link":
+        actions = ["off", "delete", "warn", "mute"]
+        current = settings.get("link_action", "off")
+        new_action = actions[(actions.index(current) + 1) % len(actions)]
         conn, c = get_db()
-        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'max_warns', ?)", (chat_id, count))
+        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'link_action', ?)", (chat_id, new_action))
         conn.commit()
-        query.edit_message_text(get_message(chat_id, "max_warns_set").format(count=count))
+        update_settings_message(query, context, chat_id)
     
-    elif data == "warn_action":
-        keyboard = [
-            [InlineKeyboardButton("הרחקה", callback_data="action_kick"),
-             InlineKeyboardButton("חסימה", callback_data="action_ban"),
-             InlineKeyboardButton("השתק", callback_data="action_mute")]
-        ]
-        query.edit_message_text(get_message(chat_id, "warn_action_prompt"), reply_markup=InlineKeyboardMarkup(keyboard))
-    
-    elif data.startswith("action_"):
-        action = data.split("_")[1]
+    elif data == "cycle_warns":
+        warns = ["2", "3", "4"]
+        current = settings.get("max_warns", "3")
+        new_warns = warns[(warns.index(current) + 1) % len(warns)]
         conn, c = get_db()
-        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'warn_action', ?)", (chat_id, action))
+        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'max_warns', ?)", (chat_id, new_warns))
         conn.commit()
-        query.edit_message_text(get_message(chat_id, "warn_action_set").format(action=action))
+        update_settings_message(query, context, chat_id)
+    
+    elif data == "cycle_action":
+        actions = ["kick", "ban", "mute"]
+        current = settings.get("warn_action", "kick")
+        new_action = actions[(actions.index(current) + 1) % len(actions)]
+        conn, c = get_db()
+        c.execute("INSERT OR REPLACE INTO settings (chat_id, key, value) VALUES (?, 'warn_action', ?)", (chat_id, new_action))
+        conn.commit()
+        update_settings_message(query, context, chat_id)
+    
+    elif data in ["unwarn", "verify_ban"]:  # טיפול בכפתורי אזהרה ואימות
+        from commands import button_handler as commands_button_handler
+        commands_button_handler(update, context)
+
+def update_settings_message(query, context, chat_id):
+    settings = get_chat_settings(chat_id)
+    lang = settings.get("language", "en")
+    service_status = "✅" if settings.get("delete_service", "False") == "True" else "❌"
+    link_action = settings.get("link_action", "off")
+    max_warns = settings.get("max_warns", "3")
+    warn_action = settings.get("warn_action", "kick")
+    
+    keyboard = [
+        [InlineKeyboardButton("שפה", callback_data="lang_label"), 
+         InlineKeyboardButton(f"{lang}", callback_data="toggle_lang")],
+        [InlineKeyboardButton("הודעות שירות", callback_data="service_label"), 
+         InlineKeyboardButton(service_status, callback_data="toggle_service")],
+        [InlineKeyboardButton("ניהול קישורים", callback_data="link_label"), 
+         InlineKeyboardButton(link_action, callback_data="cycle_link")],
+        [InlineKeyboardButton("מספר אזהרות", callback_data="warns_label"), 
+         InlineKeyboardButton(max_warns, callback_data="cycle_warns")],
+        [InlineKeyboardButton("פעולה לאחר אזהרות", callback_data="action_label"), 
+         InlineKeyboardButton(warn_action, callback_data="cycle_action")]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_text(get_message(chat_id, "settings_menu"), reply_markup=reply_markup)
 
 def handle_settings_input(update, context):
     chat_id = update.effective_chat.id

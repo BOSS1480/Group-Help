@@ -1,7 +1,7 @@
 from telegram.ext import ContextTypes
 from database import get_db, get_chat_settings
 from language import get_message
-from commands import check_admin
+from utils import check_admin
 
 def add_filter(update, context):
     chat_id = update.effective_chat.id

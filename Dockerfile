@@ -10,6 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8443  # אם הבוט שלך מאזין לפורט 8443
+EXPOSE 8443
 
 CMD ["python", "main.py"]

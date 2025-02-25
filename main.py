@@ -50,7 +50,7 @@ def main():
     # הרצה ב-Koyeb
     port = int(os.environ.get("PORT", 8000))
     updater.start_webhook(listen="0.0.0.0", port=port, url_path=TOKEN)
-    updater.bot.setWebhook(f"https://YOUR_KOYEB_APP_NAME.koyeb.app/{TOKEN}")
+    updater.bot.setWebhook(f"https://group-help.koyeb.app/{TOKEN}")
     updater.idle()
 
 if __name__ == "__main__":

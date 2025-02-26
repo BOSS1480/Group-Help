@@ -1,68 +1,66 @@
-{
-  "en": {
-    "start": "Welcome! This bot helps manage your group with commands like /ban, /kick, /warn, /mute, and more. Use /help for details.",
-    "help": "Commands:\n/start - Start the bot\n/ban - Ban a user\n/unban - Unban a user\n/kick - Kick a user\n/mute - Mute a user\n/unmute - Unmute a user\n/warn - Warn a user\n/unwarn - Remove a warning\n/warns - Check warnings\n/filter - Add a filter\n/stop - Remove a filter\n/filters - List filters\n/welcome - Toggle welcome message\n/setwelcome - Set welcome message\n/setlang - Set language\n/settings - Configure settings",
-    "not_admin": "You are not an admin!",
-    "no_target": "Reply to a message or mention a user/ID.",
-    "banned": "{user} has been banned!",
-    "unbanned": "{user} has been unbanned!",
-    "kicked": "{user} has been kicked!",
-    "muted": "{user} has been muted for {time}!",
-    "unmuted": "{user} has been unmuted!",
-    "warned": "{user} has been warned ({count} warnings)! Reason: {reason}",
-    "unwarned": "{user}'s warning removed ({count} warnings left)!",
-    "warn_count": "{user} has {count} warnings. Last reason: {reason}",
-    "no_warnings": "{user} has no warnings.",
-    "kicked_after_warns": "{user} was kicked due to too many warnings!",
-    "banned_after_warns": "{user} was banned due to too many warnings!",
-    "muted_after_warns": "{user} was muted due to too many warnings!",
-    "filter_usage": "Reply to a message and use /filter <trigger>.",
-    "filter_added": "Filter '{trigger}' added!",
-    "stop_usage": "Use /stop <trigger>.",
-    "filter_removed": "Filter '{trigger}' removed!",
-    "filter_not_found": "Filter '{trigger}' not found!",
-    "filters_list": "Filters:\n{filters}",
-    "no_filters": "No filters set.",
-    "welcome_usage": "Use /welcome on or /welcome off.",
-    "welcome_set": "Welcome message set to {status}!",
-    "setwelcome_usage": "Reply to a message to set the welcome text.",
-    "welcome_message_set": "Welcome message updated!",
-    "default_welcome": "Hi {user} 👋\nWelcome to {group} 🤟",
-    "setlang_usage": "Use /setlang he or /setlang en.",
-    "language_set": "Language set to {lang}!",
-    "settings_menu": "⚙️ Group Settings:"
-  },
-  "he": {
-    "start": "ברוכים הבאים! הבוט הזה עוזר לנהל את הקבוצה עם פקודות כמו /ban, /kick, /warn, /mute ועוד. השתמש ב-/help לפרטים.",
-    "help": "פקודות:\n/start - התחל את הבוט\n/ban - חסום משתמש\n/unban - בטל חסימה\n/kick - הרחק משתמש\n/mute - השתק משתמש\n/unmute - בטל השתקה\n/warn - תן אזהרה\n/unwarn - הסר אזהרה\n/warns - בדוק אזהרות\n/filter - הוסף פילטר\n/stop - הסר פילטר\n/filters - רשימת פילטרים\n/welcome - הפעל/כבה הודעת קבלת פנים\n/setwelcome - קבע הודעת קבלת פנים\n/setlang - קבע שפה\n/settings - הגדרות",
-    "not_admin": "אתה לא מנהל!",
-    "no_target": "הגב להודעה או תייג משתמש/איידי.",
-    "banned": "{user} נחסם!",
-    "unbanned": "{user} שוחרר מחסימה!",
-    "kicked": "{user} הורחק!",
-    "muted": "{user} הושתק ל-{time}!",
-    "unmuted": "{user} שוחרר מהשתקה!",
-    "warned": "{user} קיבל אזהרה ({count} אזהרות)! סיבה: {reason}",
-    "unwarned": "אזהרה של {user} הוסרה ({count} אזהרות נותרו)!",
-    "warn_count": "ל-{user} יש {count} אזהרות. סיבה אחרונה: {reason}",
-    "no_warnings": "ל-{user} אין אזהרות.",
-    "kicked_after_warns": "{user} הורחק עקב יותר מדי אזהרות!",
-    "banned_after_warns": "{user} נחסם עקב יותר מדי אזהרות!",
-    "muted_after_warns": "{user} הושתק עקב יותר מדי אזהרות!",
-    "filter_usage": "הגב להודעה והשתמש ב-/filter <מילה>.",
-    "filter_added": "פילטר '{trigger}' נוסף!",
-    "stop_usage": "השתמש ב-/stop <מילה>.",
-    "filter_removed": "פילטר '{trigger}' הוסר!",
-    "filter_not_found": "פילטר '{trigger}' לא נמצא!",
-    "filters_list": "פילטרים:\n{filters}",
-    "no_filters": "אין פילטרים מוגדרים.",
-    "welcome_usage": "השתמש ב-/welcome on או /welcome off.",
-    "welcome_set": "הודעת קבלת פנים נקבעה ל-{status}!",
-    "setwelcome_usage": "הגב להודעה לקבוע טקסט קבלת פנים.",
-    "welcome_message_set": "הודעת קבלת הפנים עודכנה!",
-    "default_welcome": "היי {user} 👋\nברוכים הבאים ל-{group} 🤟",
-    "setlang_usage": "השתמש ב-/setlang he או /setlang en.",
-    "language_set": "השפה נקבעה ל-{lang}!",
-    "settings_menu": "⚙️ הגדרות הקבוצה:"
-  }
+# messages.py
+
+LANG = {
+    "en": {
+        "start": (
+            "<b>Welcome!</b>\n"
+            "I am a <i>group management bot</i> that helps you manage your group with commands such as <b>ban</b>, <b>kick</b>, <b>mute</b>, <b>warn</b>, etc."
+        ),
+        "help": (
+            "<b>ℹ️ Help & Instructions:</b>\n"
+            "• Use <b>/ban</b>, <b>/kick</b>, <b>/mute</b>, etc. by replying to a user's message or mentioning their username/ID.\n"
+            "• <b>/warn</b> issues a warning – when the warning count reaches the group limit, the user will be kicked.\n"
+            "• <b>/settings</b> allows you to configure group settings (only admins can change these).\n\n"
+            "Press <b>Back</b> to return to the main menu."
+        ),
+        "not_admin": "<b>Error:</b> You are not an admin or lack permission to perform this action.",
+        "user_not_found": "<b>Error:</b> User not found. Please reply to a user's message or provide a valid username/ID.",
+        "action_success": "<b>Success:</b> Action completed successfully.",
+        "language_set_en": "<b>Success:</b> Language has been set to English.",
+        "language_set_he": "<b>Success:</b> Language has been set to Hebrew.",
+        "welcome_default": "Hello <a href=\"tg://user?id={id}\">{name}</a>, welcome to <b>{group}</b>!",
+        "settings_title": "<b>📋 Group Settings:</b>",
+        "settings_language": "Language",
+        "settings_warn_limit": "Warn Limit",
+        "settings_service_msgs": "Service Messages",
+        "settings_links": "Links Handling",
+        "auth_request": "Please authenticate by pressing the button below.",
+        "auth_success": "<b>Success:</b> Authentication successful.",
+        "warns_info": (
+            "User <a href=\"tg://user?id={id}\">{name}</a> received warning <b>{current}</b> out of <b>{limit}</b>.\n"
+            "{reason_line}"
+        ),
+        "no_warns": "User <a href=\"tg://user?id={id}\">{name}</a> has no warnings."
+    },
+    "he": {
+        "start": (
+            "<b>ברוכים הבאים!</b>\n"
+            "אני <i>בוט ניהול קבוצות</i> שעוזר לך לנהל את הקבוצה עם פקודות כגון <b>חסימה</b>, <b>עפה</b>, <b>השתקה</b>, <b>אזהרה</b> ועוד."
+        ),
+        "help": (
+            "<b>ℹ️ עזרה והוראות שימוש:</b>\n"
+            "• השתמש ב־<b>/ban</b>, <b>/kick</b>, <b>/mute</b> וכו' על ידי הגיב להודעת משתמש או תיוג/מספר זיהוי שלו.\n"
+            "• <b>/warn</b> מוסיפה אזהרה – כאשר מספר האזהרות מגיע למגבלת הקבוצה, המשתמש יועף.\n"
+            "• <b>/settings</b> מאפשרת להגדיר את הגדרות הקבוצה (רק מנהלים יכולים לשנות אותן).\n\n"
+            "לחץ על <b>חזרה</b> כדי לחזור לתפריט הראשי."
+        ),
+        "not_admin": "<b>שגיאה:</b> אין לך הרשאות מנהל או שאינך מורשה לבצע פעולה זו.",
+        "user_not_found": "<b>שגיאה:</b> לא נמצא משתמש. אנא הגיב להודעת משתמש או ספק שם משתמש/מזהה תקין.",
+        "action_success": "<b>הצלחה:</b> הפעולה בוצעה בהצלחה.",
+        "language_set_en": "<b>הצלחה:</b> השפה הוגדרה לאנגלית.",
+        "language_set_he": "<b>הצלחה:</b> השפה הוגדרה לעברית.",
+        "welcome_default": "היי <a href=\"tg://user?id={id}\">{name}</a>, ברוכים הבאים ל<b>{group}</b>!",
+        "settings_title": "<b>📋 הגדרות הקבוצה:</b>",
+        "settings_language": "שפה",
+        "settings_warn_limit": "מספר אזהרות",
+        "settings_service_msgs": "הודעות שירות",
+        "settings_links": "טיפול בקישורים",
+        "auth_request": "אנא אמת על ידי לחיצה על הכפתור למטה.",
+        "auth_success": "<b>הצלחה:</b> האימות בוצע בהצלחה.",
+        "warns_info": (
+            "המשתמש <a href=\"tg://user?id={id}\">{name}</a> קיבל אזהרה <b>{current}</b> מתוך <b>{limit}</b>.\n"
+            "{reason_line}"
+        ),
+        "no_warns": "למשתמש <a href=\"tg://user?id={id}\">{name}</a> אין אזהרות."
+    }
 }
